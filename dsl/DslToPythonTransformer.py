@@ -6,70 +6,9 @@ import ast
 class DslTransformer(DslVisitor):
     # Visit a parse tree produced by DslParser#prog.
     def visitProg(self, ctx:DslParser.ProgContext):
-        if(ctx.conditions):
-            self.visit(ctx.conditions)
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by DslParser#knowledge.
-    def visitKnowledge(self, ctx:DslParser.KnowledgeContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by DslParser#use.
-    def visitUse(self, ctx:DslParser.UseContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by DslParser#belief.
-    def visitBelief(self, ctx:DslParser.BeliefContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by DslParser#goal.
-    def visitGoal(self, ctx:DslParser.GoalContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by DslParser#modifier.
-    def visitModifier(self, ctx:DslParser.ModifierContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by DslParser#structure.
-    def visitStructure(self, ctx:DslParser.StructureContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by DslParser#structure_elements.
-    def visitStructure_elements(self, ctx:DslParser.Structure_elementsContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by DslParser#source.
-    def visitSource(self, ctx:DslParser.SourceContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by DslParser#elements.
-    def visitElements(self, ctx:DslParser.ElementsContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by DslParser#bind.
-    def visitBind(self, ctx:DslParser.BindContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by DslParser#function_call.
-    def visitFunction_call(self, ctx:DslParser.Function_callContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by DslParser#function_path.
-    def visitFunction_path(self, ctx:DslParser.Function_pathContext):
-        return self.visitChildren(ctx)
-
+        self.entered_cmp = False
+        self.entered_logic = False
+        return self.visit(ctx.conditions)
 
     # Visit a parse tree produced by DslParser#function_params.
     def visitFunction_params(self, ctx:DslParser.Function_paramsContext):
@@ -91,33 +30,136 @@ class DslTransformer(DslVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by DslParser#pattern_match_expr.
-    def visitPattern_match_expr(self, ctx:DslParser.Pattern_match_exprContext):
-        return self.visitChildren(ctx)
+    # Visit a parse tree produced by DslParser#logical_or.
+    def visitLogical_or(self, ctx:DslParser.Logical_orContext):
+        left = self.visit(ctx.log_expr(0))
+        right = self.visit(ctx.log_expr(1))
+        return ast.BoolOp(values=[left, right], op=ast.Or())
+
+    # Visit a parse tree produced by DslParser#logical_and.
+    def visitLogical_and(self, ctx:DslParser.Logical_andContext):
+        left = self.visit(ctx.log_expr(0))
+        right = self.visit(ctx.log_expr(1))
+        return ast.BoolOp(values=[left, right], op=ast.And())
 
 
-    # Visit a parse tree produced by DslParser#pattern_match_tuple.
-    def visitPattern_match_tuple(self, ctx:DslParser.Pattern_match_tupleContext):
-        return self.visitChildren(ctx)
+    # Visit a parse tree produced by DslParser#logical_not.
+    def visitLogical_not(self, ctx:DslParser.Logical_notContext):
+        operand = self.visit(ctx.log_expr(0))
+        return ast.UnaryOp(op=ast.Not(), operand=operand)
+
+    # Visit a parse tree produced by DslParser#rel_comparison.
+    def visitRel_comparison(self, ctx:DslParser.Rel_comparisonContext):
+        left = self.visit(ctx.rel_expr(0))
+        right = self.visit(ctx.rel_expr(1))
+        op = ctx.getChild(1).getText()
+
+        new_op = None
+        match op:
+            case'=':
+                new_op = ast.Eq()
+            case '!=':
+                new_op = ast.NotEq()
+            case '<':
+                new_op = ast.Lt()
+            case '<=':
+                new_op = ast.LtE()
+            case '>':
+                new_op = ast.Gt()
+            case '>=':
+                new_op = ast.GtE()
+            case _:
+                raise Error(f"Operação inválida, visitRel_comparison, esperado =, !=, <, <=, >, >= encontrado '{op}'")
+        
+        if(isinstance(left, ast.Compare)):
+            left.ops.append(op)
+            left.comparators.append(right)
+            return left
+        else:
+            ast.Compare(left=left, ops=[op], comparators=[right])
 
 
-    # Visit a parse tree produced by DslParser#pattern.
-    def visitPattern(self, ctx:DslParser.PatternContext):
-        return self.visitChildren(ctx)
+    # Visit a parse tree produced by DslParser#unary_expr.
+    def visitUnary_expr(self, ctx:DslParser.Unary_exprContext):
+        unary_op = ctx.getChild(0)
+        operand = ctx.arith_expr(0)
+        if(unary_op == '+'):
+            return ast.UnaryOp(op=ast.UAdd(), operand=operand)
+        if(unary_op == '*'):
+            return ast.UnaryOp(op=ast.USub(), operand=operand)
+
+        raise Error(f"Operação inválida, visitUnary_expr, esperado + ou - encontrado '{unary_op}'")
+
+    # Visit a parse tree produced by DslParser#sum_expr.
+    def visitSum_expr(self, ctx:DslParser.Sum_exprContext):
+        left = self.visit(ctx.arith_expr(0))
+        rigth = self.visit(ctx.arith_expr(1))
+        op = ctx.getChild(1).getText()
+        if(op == '+'):
+            return ast.BinOp(left=left, rigth=right, op=ast.Add())
+        if(op == '-'):
+            return ast.BinOp(left=left, rigth=right, op=ast.Add())
+
+        raise Error(f"Operação inválida, visitSum_expr, esperado + ou - encontrado '{op}'")
 
 
-    # Visit a parse tree produced by DslParser#array_pattern.
-    def visitArray_pattern(self, ctx:DslParser.Array_patternContext):
-        return self.visitChildren(ctx)
+    # Visit a parse tree produced by DslParser#exp_expr.
+    def visitExp_expr(self, ctx:DslParser.Exp_exprContext):
+        base = self.visit(ctx.arith_expr(0))
+        exponent = self.visit(ctx.arith_expr(1))
+        return ast.BinOp(left=base, right=exponent, op=ast.Pow())
 
 
-    # Visit a parse tree produced by DslParser#range_pattern.
-    def visitRange_pattern(self, ctx:DslParser.Range_patternContext):
-        return self.visitChildren(ctx)
+    # Visit a parse tree produced by DslParser#mult_expr.
+    def visitMult_expr(self, ctx:DslParser.Mult_exprContext):
+        left = self.visit(ctx.arith_expr(0))
+        right = self.visit(ctx.arith_expr(1))
+        op = ctx.getChild(1).getText()
+        if op == "*":
+            return ast.BinOp(left=left, right=right, op=ast.Mult())
+        if op == "/":
+            return ast.BinOp(left=left, right=right, op=ast.Div())
+        if op == "%":
+            return ast.BinOp(left=left, right=right, op=ast.Mod())
+
+        raise Error(f"Operação inválida, visitMult_expr, esperado * ou / encontrado '{op}'")
 
 
-    # Visit a parse tree produced by DslParser#inclusive_range_pattern.
-    def visitInclusive_range_pattern(self, ctx:DslParser.Inclusive_range_patternContext):
+
+    # Visit a parse tree produced by DslParser#primary_call.
+    def visitPrimary_call(self, ctx:DslParser.Primary_callContext):
+        func = self.visit(ctx.primary(0))
+        args = []
+
+        if(ctx.function_params(0) is not None): 
+            args = self.visit(ctx.function_params(0))
+        
+        return ast.Call(func=func, args=args, keywords=[])
+
+
+    # Visit a parse tree produced by DslParser#primary_path.
+    def visitPrimary_path(self, ctx:DslParser.Primary_pathContext):
+        attr = ctx.IDENTIFIER().getText()
+        value = self.visit(ctx.primary(0))
+        return ast.Attribute(value=value, attr=attr, ctx=ast.Load())
+
+
+    # Visit a parse tree produced by DslParser#primary_walrus.
+    def visitPrimary_walrus(self, ctx:DslParser.Primary_walrusContext):
+        name = ctx.IDENTIFIER().getText()
+        value = self.visit(ctx.log_expr(0))
+        return ast.NamedExpr(target=ast.Name(id=name, ctx=ast.Store()), value=value)
+
+
+    # Visit a parse tree produced by DslParser#primary_index.
+    def visitPrimary_index(self, ctx:DslParser.Primary_indexContext):
+        value = self.visit(ctx.primary(0))
+        slice = self.visit(ctx.log_expr(0))
+        return ast.Subscript(value=value, slice=slice, ctx=ast.Load())
+
+
+    # Visit a parse tree produced by DslParser#atom.
+    def visitAtom(self, ctx:DslParser.AtomContext):
         return self.visitChildren(ctx)
 
 
@@ -131,31 +173,29 @@ class DslTransformer(DslVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by DslParser#tuple_pattern.
-    def visitTuple_pattern(self, ctx:DslParser.Tuple_patternContext):
+    # Visit a parse tree produced by DslParser#array.
+    def visitArray(self, ctx:DslParser.ArrayContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by DslParser#tuple_pattern_params.
-    def visitTuple_pattern_params(self, ctx:DslParser.Tuple_pattern_paramsContext):
+    # Visit a parse tree produced by DslParser#array_params.
+    def visitArray_params(self, ctx:DslParser.Array_paramsContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by DslParser#log_expr.
-    def visitLog_expr(self, ctx:DslParser.Log_exprContext):
+    # Visit a parse tree produced by DslParser#dict.
+    def visitDict(self, ctx:DslParser.DictContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by DslParser#rel_expr.
-    def visitRel_expr(self, ctx:DslParser.Rel_exprContext):
+    # Visit a parse tree produced by DslParser#dict_params.
+    def visitDict_params(self, ctx:DslParser.Dict_paramsContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by DslParser#arith_expr.
-    def visitArith_expr(self, ctx:DslParser.Arith_exprContext):
+    # Visit a parse tree produced by DslParser#dict_pair.
+    def visitDict_pair(self, ctx:DslParser.Dict_pairContext):
         return self.visitChildren(ctx)
 
+ 
 
-    # Visit a parse tree produced by DslParser#expr.
-    def visitExpr(self, ctx:DslParser.ExprContext):
-        return self.visitChildren(ctx)

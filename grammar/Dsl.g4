@@ -21,8 +21,6 @@ elements: BOOLEAN
 
 bind: IDENTIFIER;
 
-function_call: function_path '(' function_params? ')';
-function_path: IDENTIFIER ('.' IDENTIFIER)*;
 function_params: log_expr (',' log_expr)* ;
 
 conditions: condition_list?;
@@ -34,12 +32,11 @@ log_expr: 'not' log_expr #logical_not
     | log_expr '|' log_expr #logical_or
     | rel_expr #log_to_rel;
 
-rel_expr: arith_expr op=('=' | '!=') rel_expr #rel_equality
-    | arith_expr op=('<' | '>' | '<=' | '>=') rel_expr #rel_comparison
+rel_expr: rel_expr op=('<' | '>' | '<=' | '>=' | '=' | '!=' ) rel_expr #rel_comparison
     | arith_expr #rel_to_arith;
 
 arith_expr:  arith_expr '**' arith_expr #exp_expr
-    | <assoc=right> op=('-' | '+') log_expr #unary_expr
+    | <assoc=right> op=('-' | '+') arith_expr #unary_expr
     | arith_expr op=('*' | '/' | '%') arith_expr #mult_expr
     | arith_expr op=('+' | '-') arith_expr #sum_expr
     | primary #expr_to_primary;
