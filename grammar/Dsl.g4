@@ -23,82 +23,51 @@ bind: IDENTIFIER;
 
 function_call: function_path '(' function_params? ')';
 function_path: IDENTIFIER ('.' IDENTIFIER)*;
-function_params: expr (',' expr)* ;
+function_params: log_expr (',' log_expr)* ;
 
 conditions: condition_list?;
 condition_list: condition (',' condition)*;
 
-condition: log_expr
-    | pattern_match_expr
-    | pattern_match_tuple;
+condition: log_expr;
+log_expr: 'not' log_expr #logical_not
+    | log_expr '&' log_expr #logical_and
+    | log_expr '|' log_expr #logical_or
+    | rel_expr #log_to_rel;
 
-pattern_match_expr: log_expr 'is' pattern ('|' pattern)*;
-pattern_match_tuple: tuple 'is' tuple ('|' tuple)*;
-//
-pattern: pattern 'and' pattern
-    | '!=' rel_expr
-    | op=('<' | '<=' | '>=' | '>') rel_expr
-    | rel_expr
-    | array_pattern
-    | range_pattern
-    | inclusive_range_pattern;
+rel_expr: arith_expr op=('=' | '!=') rel_expr #rel_equality
+    | arith_expr op=('<' | '>' | '<=' | '>=') rel_expr #rel_comparison
+    | arith_expr #rel_to_arith;
 
-array_pattern: '[' (pattern ',')* ('*' bind?)? (',' pattern)* ']';
-range_pattern: expr '..' expr;
-inclusive_range_pattern: expr '..=' expr;
+arith_expr:  arith_expr '**' arith_expr #exp_expr
+    | <assoc=right> op=('-' | '+') log_expr #unary_expr
+    | arith_expr op=('*' | '/' | '%') arith_expr #mult_expr
+    | arith_expr op=('+' | '-') arith_expr #sum_expr
+    | primary #expr_to_primary;
 
-tuple: '(' tuple_params ')';
-tuple_params: ((log_expr | tuple) ',')+ (log_expr | tuple)?;
-tuple_pattern: '(' tuple_pattern_params')';
-tuple_pattern_params: ((tuple_pattern | pattern) ',')+ (tuple_pattern | pattern)?;
-
-log_expr: 'not' log_expr
-    | log_expr 'and' log_expr
-    | log_expr 'or' log_expr
-    | '(' log_expr ')'
-    | rel_expr;
+primary: primary '.' IDENTIFIER #primary_path
+    | primary '(' function_params ? ')' #primary_call
+    | primary '[' log_expr ']' #primary_index
+    | '(' IDENTIFIER ':=' log_expr ')' #primary_walrus
+    | atom #primary_to_atom;
 
 
-rel_expr: arith_expr op=('=' | '!=') rel_expr
-    | arith_expr op=('<' | '>' | '<=' | '>=') rel_expr
-    | arith_expr;
-
-arith_expr: <assoc=right> '-' expr
-    | arith_expr '**' arith_expr
-    | arith_expr op=('*' | '/') arith_expr
-    | arith_expr op=('+' | '-') arith_expr
-    | NUMBER
-    | IDENTIFIER
-    | ESCAPED_STR;
-
-//arith_expr: arith_term '+' arith_expr
-//    | arith_term '-' arith_expr
-//    | arith_term;
-//
-//arith_term: arith_factor '*' arith_term
-//                | arith_factor '/' arith_term
-//                | arith_factor;
-//arith_factor: arith_simple ('**' arith_simple)?;
-//arith_simple: NUMBER
-//    | IDENTIFIER
-//    | '-' arith_simple
-//    | '(' arith_expr ')';
-
-expr: <assoc=right> ('!' | '-') expr
-    | expr op=('*' | '/') expr
-    | expr op=('+' | '-') expr
-    | expr op=('=' | '!=') expr
-    | expr op=('<' | '<=' | '>=' | '>') expr
-    | expr 'and' expr
-    | expr 'or' expr
-    | expr '[' expr ']'
-    | expr '.' expr
-    | '(' expr ')'
-    | function_call
-    | IDENTIFIER '.' function_call
-    | IDENTIFIER ':=' expr
+atom: NUMBER
     | IDENTIFIER
     | BOOLEAN
-    | ESCAPED_STR
-    | NUMBER
-    | '_';
+    | 'None'
+    | tuple
+    | array
+    | dict
+    | '(' log_expr ')'
+    | ESCAPED_STR;
+
+
+tuple: '(' tuple_params ')';
+tuple_params: (log_expr',')+ log_expr?;
+
+array: '[' array_params? ']';
+array_params: (log_expr ',')* log_expr;
+
+dict: '{' dict_params '}';
+dict_params: (dict_pair ',')* dict_pair;
+dict_pair: log_expr ':' log_expr;
