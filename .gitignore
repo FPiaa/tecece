@@ -1,0 +1,10 @@
+.mypy_cache
+.antlr
+.idea
+diagramas
+__pycache__
+python_parser/bin
+lib**
+lib64**
+dsl/grammar
+bin
