@@ -1,6 +1,6 @@
 from dsl.dsl import precondition
 
-@precondition("where {1: 1, 2: 2}")
+@precondition("where a.b.cfoo()")
 def foo(x, y):
     print("foo")
 

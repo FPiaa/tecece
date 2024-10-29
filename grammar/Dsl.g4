@@ -48,15 +48,15 @@ primary: primary '.' IDENTIFIER #primary_path
     | atom #primary_to_atom;
 
 
-atom: NUMBER
-    | IDENTIFIER
-    | BOOLEAN
-    | 'None'
-    | tuple
-    | array
-    | dict
-    | '(' log_expr ')'
-    | ESCAPED_STR;
+atom: NUMBER #atomNumber
+    | IDENTIFIER #atomIdent
+    | BOOLEAN #atomBool
+    | 'None' #atomNone
+    | tuple #atomTuple
+    | array #atomArray
+    | dict #atomDict
+    | '(' log_expr ')' #atomParen
+    | ESCAPED_STR #atomStr;
 
 
 tuple: '(' tuple_params ')';

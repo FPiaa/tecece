@@ -91,12 +91,12 @@ class DslTransformer(DslVisitor):
     # Visit a parse tree produced by DslParser#sum_expr.
     def visitSum_expr(self, ctx:DslParser.Sum_exprContext):
         left = self.visit(ctx.arith_expr(0))
-        rigth = self.visit(ctx.arith_expr(1))
+        right = self.visit(ctx.arith_expr(1))
         op = ctx.getChild(1).getText()
         if(op == '+'):
-            return ast.BinOp(left=left, rigth=right, op=ast.Add())
+            return ast.BinOp(left=left, right=right, op=ast.Add())
         if(op == '-'):
-            return ast.BinOp(left=left, rigth=right, op=ast.Add())
+            return ast.BinOp(left=left, right=right, op=ast.Add())
 
         raise Error(f"Operação inválida, visitSum_expr, esperado + ou - encontrado '{op}'")
 
@@ -126,11 +126,12 @@ class DslTransformer(DslVisitor):
 
     # Visit a parse tree produced by DslParser#primary_call.
     def visitPrimary_call(self, ctx:DslParser.Primary_callContext):
-        func = self.visit(ctx.primary(0))
+        func = self.visit(ctx.primary())
         args = []
-
-        if(ctx.function_params(0) is not None): 
-            args = self.visit(ctx.function_params(0))
+        print(func)
+        if(ctx.function_params() is not None): 
+            args = self.visit(ctx.function_params())
+            print(args)
         
         return ast.Call(func=func, args=args, keywords=[])
 
@@ -138,21 +139,21 @@ class DslTransformer(DslVisitor):
     # Visit a parse tree produced by DslParser#primary_path.
     def visitPrimary_path(self, ctx:DslParser.Primary_pathContext):
         attr = ctx.IDENTIFIER().getText()
-        value = self.visit(ctx.primary(0))
+        value = self.visit(ctx.primary())
         return ast.Attribute(value=value, attr=attr, ctx=ast.Load())
 
 
     # Visit a parse tree produced by DslParser#primary_walrus.
     def visitPrimary_walrus(self, ctx:DslParser.Primary_walrusContext):
         name = ctx.IDENTIFIER().getText()
-        value = self.visit(ctx.log_expr(0))
+        value = self.visit(ctx.log_expr())
         return ast.NamedExpr(target=ast.Name(id=name, ctx=ast.Store()), value=value)
 
 
     # Visit a parse tree produced by DslParser#primary_index.
     def visitPrimary_index(self, ctx:DslParser.Primary_indexContext):
-        value = self.visit(ctx.primary(0))
-        slice = self.visit(ctx.log_expr(0))
+        value = self.visit(ctx.primary())
+        slice = self.visit(ctx.log_expr())
         return ast.Subscript(value=value, slice=slice, ctx=ast.Load())
 
 
@@ -163,24 +164,41 @@ class DslTransformer(DslVisitor):
 
     # Visit a parse tree produced by DslParser#tuple.
     def visitTuple(self, ctx:DslParser.TupleContext):
-        params = self.visit(ctx.tuple_params(0))
+        params = self.visit(ctx.tuple_params())
         return ast.Tuple(elts=params, ctx=ast.Load())
-
+    
+    def visitTuple_params(self, ctx:DslParser.Tuple_paramsContext):
+        params = []
+        for el in ctx.log_expr():
+            params.append(self.visit(el))
+        return params
 
     # Visit a parse tree produced by DslParser#array.
     def visitArray(self, ctx:DslParser.ArrayContext):
-        params = self.visit(ctx.array_params(0))
+        params = self.visit(ctx.array_params())
         return ast.List(elts=params, ctx=ast.Load())
 
+    # Visit a parse tree produced by DslParser#array_params.
+    def visitArray_params(self, ctx:DslParser.Array_paramsContext):
+        params = []
+        for el in ctx.log_expr():
+            params.append(self.visit(el))
+        return params
 
 
     # Visit a parse tree produced by DslParser#dict.
     def visitDict(self, ctx:DslParser.DictContext):
-        elements = self.visitChildren(ctx)
-        print(elements)
+        elements = self.visit(ctx.dict_params())
         keys = [x[0] for x in elements]
         values = [x[1] for x in elements]
         return ast.Dict(keys=keys, values=values)
+
+    # Visit a parse tree produced by DslParser#dict_params.
+    def visitDict_params(self, ctx:DslParser.Dict_paramsContext):
+        params = []
+        for pair in ctx.dict_pair():
+            params.append(self.visit(pair))
+        return params
 
     # Visit a parse tree produced by DslParser#dict_pair.
     def visitDict_pair(self, ctx:DslParser.Dict_pairContext):
@@ -188,5 +206,46 @@ class DslTransformer(DslVisitor):
         value = self.visit(ctx.log_expr(1))
         return (key, value)
 
- 
+    # Visit a parse tree produced by DslParser#atomNumber.
+    def visitAtomNumber(self, ctx:DslParser.AtomNumberContext):
+        return ast.Constant(value=int(ctx.NUMBER().getText()))
 
+
+    # Visit a parse tree produced by DslParser#atomIdent.
+    def visitAtomIdent(self, ctx:DslParser.AtomIdentContext):
+        return ast.Name(id=ctx.IDENTIFIER().getText(), ctx=ast.Load())
+
+
+    # Visit a parse tree produced by DslParser#atomBool.
+    def visitAtomBool(self, ctx:DslParser.AtomBoolContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by DslParser#atomNone.
+    def visitAtomNone(self, ctx:DslParser.AtomNoneContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by DslParser#atomTuple.
+    def visitAtomTuple(self, ctx:DslParser.AtomTupleContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by DslParser#atomArray.
+    def visitAtomArray(self, ctx:DslParser.AtomArrayContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by DslParser#atomDict.
+    def visitAtomDict(self, ctx:DslParser.AtomDictContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by DslParser#atomParen.
+    def visitAtomParen(self, ctx:DslParser.AtomParenContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by DslParser#atomStr.
+    def visitAtomStr(self, ctx:DslParser.AtomStrContext):
+        return self.visitChildren(ctx)

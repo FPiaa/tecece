@@ -152,9 +152,6 @@ class DslToPython(ast.NodeTransformer):
 
 with open("example.py", "r") as f:
     tree = ast.parse(f.read())
-    tree = DocstringTransformer().visit(tree)
-    tree = PrintTransformer().visit(tree)
-    tree = CreateFunctionTransformer().visit(tree)
     tree = DslToPython().visit(tree)
     tree = ast.fix_missing_locations(tree)
     with open("build.py", "w") as f:
