@@ -1,4 +1,4 @@
-from dsl.grammar.DslParser import DslParser
+from .grammar.DslParser import DslParser
 from .grammar.DslVisitor import DslVisitor
 import ast
 
@@ -6,9 +6,7 @@ import ast
 class DslTransformer(DslVisitor):
     # Visit a parse tree produced by DslParser#prog.
     def visitProg(self, ctx:DslParser.ProgContext):
-        self.entered_cmp = False
-        self.entered_logic = False
-        return self.visit(ctx.conditions)
+        return self.visit(ctx.conditions())
 
     # Visit a parse tree produced by DslParser#function_params.
     def visitFunction_params(self, ctx:DslParser.Function_paramsContext):
@@ -165,37 +163,30 @@ class DslTransformer(DslVisitor):
 
     # Visit a parse tree produced by DslParser#tuple.
     def visitTuple(self, ctx:DslParser.TupleContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by DslParser#tuple_params.
-    def visitTuple_params(self, ctx:DslParser.Tuple_paramsContext):
-        return self.visitChildren(ctx)
+        params = self.visit(ctx.tuple_params(0))
+        return ast.Tuple(elts=params, ctx=ast.Load())
 
 
     # Visit a parse tree produced by DslParser#array.
     def visitArray(self, ctx:DslParser.ArrayContext):
-        return self.visitChildren(ctx)
+        params = self.visit(ctx.array_params(0))
+        return ast.List(elts=params, ctx=ast.Load())
 
-
-    # Visit a parse tree produced by DslParser#array_params.
-    def visitArray_params(self, ctx:DslParser.Array_paramsContext):
-        return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by DslParser#dict.
     def visitDict(self, ctx:DslParser.DictContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by DslParser#dict_params.
-    def visitDict_params(self, ctx:DslParser.Dict_paramsContext):
-        return self.visitChildren(ctx)
-
+        elements = self.visitChildren(ctx)
+        print(elements)
+        keys = [x[0] for x in elements]
+        values = [x[1] for x in elements]
+        return ast.Dict(keys=keys, values=values)
 
     # Visit a parse tree produced by DslParser#dict_pair.
     def visitDict_pair(self, ctx:DslParser.Dict_pairContext):
-        return self.visitChildren(ctx)
+        key = self.visit(ctx.log_expr(0))
+        value = self.visit(ctx.log_expr(1))
+        return (key, value)
 
  
 

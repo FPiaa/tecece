@@ -1,15 +1,15 @@
 from antlr4 import CommonTokenStream, InputStream
-from .grammar.ExprLexer import ExprLexer
-from .grammar.ExprParser import ExprParser
+from .grammar.DslLexer import DslLexer
+from .grammar.DslParser import DslParser
 from .DslToPythonTransformer import DslTransformer
 from io import StringIO
 
 
 def parse(input):
-    lexer = ExprLexer(InputStream(input))
+    lexer = DslLexer(InputStream(input))
     stream = CommonTokenStream(lexer)
-    parser = ExprParser(stream)
-    tree = parser.expr()
+    parser = DslParser(stream)
+    tree = parser.prog()
     return DslTransformer().visit(tree)
 
 
