@@ -67,14 +67,14 @@ class DslTransformer(DslVisitor):
             case '>=':
                 new_op = ast.GtE()
             case _:
-                raise Error(f"Operação inválida, visitRel_comparison, esperado =, !=, <, <=, >, >= encontrado '{op}'")
+                raise Exception(f"Operação inválida, visitRel_comparison, esperado =, !=, <, <=, >, >= encontrado '{op}'")
         
         if(isinstance(left, ast.Compare)):
-            left.ops.append(op)
+            left.ops.append(new_op)
             left.comparators.append(right)
             return left
         else:
-            ast.Compare(left=left, ops=[op], comparators=[right])
+            return ast.Compare(left=left, ops=[new_op], comparators=[right])
 
 
     # Visit a parse tree produced by DslParser#unary_expr.
@@ -83,7 +83,7 @@ class DslTransformer(DslVisitor):
         operand = ctx.arith_expr(0)
         if(unary_op == '+'):
             return ast.UnaryOp(op=ast.UAdd(), operand=operand)
-        if(unary_op == '*'):
+        if(unary_op == '-'):
             return ast.UnaryOp(op=ast.USub(), operand=operand)
 
         raise Error(f"Operação inválida, visitUnary_expr, esperado + ou - encontrado '{unary_op}'")
@@ -223,26 +223,6 @@ class DslTransformer(DslVisitor):
 
     # Visit a parse tree produced by DslParser#atomNone.
     def visitAtomNone(self, ctx:DslParser.AtomNoneContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by DslParser#atomTuple.
-    def visitAtomTuple(self, ctx:DslParser.AtomTupleContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by DslParser#atomArray.
-    def visitAtomArray(self, ctx:DslParser.AtomArrayContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by DslParser#atomDict.
-    def visitAtomDict(self, ctx:DslParser.AtomDictContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by DslParser#atomParen.
-    def visitAtomParen(self, ctx:DslParser.AtomParenContext):
         return self.visitChildren(ctx)
 
 
