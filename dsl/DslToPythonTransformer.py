@@ -157,10 +157,6 @@ class DslTransformer(DslVisitor):
         return ast.Subscript(value=value, slice=slice, ctx=ast.Load())
 
 
-    # Visit a parse tree produced by DslParser#atom.
-    def visitAtom(self, ctx:DslParser.AtomContext):
-        return self.visitChildren(ctx)
-
 
     # Visit a parse tree produced by DslParser#tuple.
     def visitTuple(self, ctx:DslParser.TupleContext):
@@ -218,14 +214,16 @@ class DslTransformer(DslVisitor):
 
     # Visit a parse tree produced by DslParser#atomBool.
     def visitAtomBool(self, ctx:DslParser.AtomBoolContext):
-        return self.visitChildren(ctx)
+        text_boolean = ctx.BOOLEAN().getText()
+        boolean = True if text_boolean == 'True' else False
+        return Ast.Constant(value=boolean)
 
 
     # Visit a parse tree produced by DslParser#atomNone.
     def visitAtomNone(self, ctx:DslParser.AtomNoneContext):
-        return self.visitChildren(ctx)
+        return ast.Constant(value=None)
 
 
     # Visit a parse tree produced by DslParser#atomStr.
     def visitAtomStr(self, ctx:DslParser.AtomStrContext):
-        return self.visitChildren(ctx)
+        return ast.Constant(value=ctx.ESCAPED_STR().getText())
