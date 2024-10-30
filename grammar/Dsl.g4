@@ -1,66 +1,68 @@
 grammar Dsl;
 import Lexer;
 
-prog: ('given' knowledge)? ('where' conditions)?;
+plan: trigger (':' conditions)?;
 
-knowledge: use (',' use)*;
-use: belief
-    | goal;
+trigger: knowledge;
+
+knowledge: belief # knowledgeBelief | goal # knowledgeGoal;
+
 belief: modifier? 'B' structure;
 goal: modifier? 'G' structure;
-modifier: '-' | '~' | '+';
+modifier: '-' | '+';
 
-structure: IDENTIFIER ('(' structure_elements?  ')')? source?;
+structure: IDENTIFIER ('(' structure_elements? ')')? source?;
 structure_elements: elements (',' elements)*;
-source: 'from' IDENTIFIER;
+source: '[' IDENTIFIER ']';
 
-elements: BOOLEAN
-    | NUMBER
-    | bind
-    | '_';
+elements: log_expr # exprElement | '_' # anyElement;
 
-bind: IDENTIFIER;
-
-function_params: log_expr (',' log_expr)* ;
+function_params: log_expr (',' log_expr)*;
 
 conditions: condition_list?;
 condition_list: condition (',' condition)*;
 
-condition: log_expr;
-log_expr: 'not' log_expr #logical_not
-    | log_expr '&' log_expr #logical_and
-    | log_expr '|' log_expr #logical_or
-    | rel_expr #log_to_rel;
+condition:
+	knowledge	# knowledgeCondition
+	| log_expr	# exprCondition;
 
-rel_expr: rel_expr op=('<' | '>' | '<=' | '>=' | '=' | '!=' ) rel_expr #rel_comparison
-    | arith_expr #rel_to_arith;
+log_expr:
+	'not' log_expr			# logical_not
+	| log_expr '&' log_expr	# logical_and
+	| log_expr '|' log_expr	# logical_or
+	| rel_expr				# log_to_rel;
 
-arith_expr:  arith_expr '**' arith_expr #exp_expr
-    | <assoc=right> op=('-' | '+') arith_expr #unary_expr
-    | arith_expr op=('*' | '/' | '%') arith_expr #mult_expr
-    | arith_expr op=('+' | '-') arith_expr #sum_expr
-    | primary #expr_to_primary;
+rel_expr:
+	rel_expr op = ('<' | '>' | '<=' | '>=' | '=' | '!=') rel_expr	# rel_comparison
+	| arith_expr													# rel_to_arith;
 
-primary: primary '.' IDENTIFIER #primary_path
-    | primary '(' function_params ? ')' #primary_call
-    | primary '[' log_expr ']' #primary_index
-    | '(' IDENTIFIER ':=' log_expr ')' #primary_walrus
-    | atom #primary_to_atom;
+arith_expr:
+	arith_expr '**' arith_expr						# exp_expr
+	| <assoc = right> op = ('-' | '+') arith_expr	# unary_expr
+	| arith_expr op = ('*' | '/' | '%') arith_expr	# mult_expr
+	| arith_expr op = ('+' | '-') arith_expr		# sum_expr
+	| primary										# expr_to_primary;
 
+primary:
+	primary '.' IDENTIFIER				# primary_path
+	| primary '(' function_params? ')'	# primary_call
+	| primary '[' log_expr ']'			# primary_index
+	| '(' IDENTIFIER ':=' log_expr ')'	# primary_walrus
+	| atom								# primary_to_atom;
 
-atom: NUMBER #atomNumber
-    | IDENTIFIER #atomIdent
-    | BOOLEAN #atomBool
-    | 'None' #atomNone
-    | tuple #atomTuple
-    | array #atomArray
-    | dict #atomDict
-    | '(' log_expr ')' #atomParen
-    | ESCAPED_STR #atomStr;
-
+atom:
+	NUMBER				# atomNumber
+	| IDENTIFIER		# atomIdent
+	| BOOLEAN			# atomBool
+	| 'None'			# atomNone
+	| tuple				# atomTuple
+	| array				# atomArray
+	| dict				# atomDict
+	| '(' log_expr ')'	# atomParen
+	| ESCAPED_STR		# atomStr;
 
 tuple: '(' tuple_params ')';
-tuple_params: (log_expr',')+ log_expr?;
+tuple_params: (log_expr ',')+ log_expr?;
 
 array: '[' array_params? ']';
 array_params: (log_expr ',')* log_expr;
