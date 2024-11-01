@@ -137,7 +137,7 @@ class DslTransformer(DslVisitor):
 
     # Visit a parse tree produced by DslParser#logical_not.
     def visitLogical_not(self, ctx:DslParser.Logical_notContext):
-        operand = self.visit(ctx.log_expr(0))
+        operand = self.visit(ctx.log_expr())
         return ast.UnaryOp(op=ast.Not(), operand=operand)
 
     # Visit a parse tree produced by DslParser#rel_comparison.
@@ -327,3 +327,8 @@ class DslTransformer(DslVisitor):
     # Visit a parse tree produced by DslParser#atomStr.
     def visitAtomStr(self, ctx:DslParser.AtomStrContext):
         return ast.Constant(value=ctx.ESCAPED_STR().getText())
+
+
+    # Visit a parse tree produced by DslParser#atomParen.
+    def visitAtomParen(self, ctx:DslParser.AtomParenContext):
+        return self.visit(ctx.log_expr())
