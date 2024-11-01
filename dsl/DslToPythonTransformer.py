@@ -33,7 +33,7 @@ class DslTransformer(DslVisitor):
             modifier_text = 'gain' if ctx.modifier().getText() == "+" else "lose"
         modifier = ast.Name(id=modifier_text, ctx=ast.Load())
         trigger = self.visit(ctx.trigger())
-        conditions = self._always_true_ctx() if ctx.conditions() is None else self.visit(ctx.conditions)
+        conditions = self._always_true_ctx() if ctx.conditions() is None else self.visit(ctx.conditions())
         return (modifier, trigger, conditions)
 
 
@@ -90,7 +90,7 @@ class DslTransformer(DslVisitor):
     # Visit a parse tree produced by DslParser#condition_list.
     def visitCondition_list(self, ctx:DslParser.Condition_listContext):
         exprs = []
-        for condition in ctx.condition_list():
+        for condition in ctx.condition():
             exprs.append(self.visit(condition))
         return exprs
 
@@ -104,7 +104,7 @@ class DslTransformer(DslVisitor):
                 ast.Expr(
                     value=ast.Pass()                
                 ),
-                Return(Constant(value=False)),
+                ast.Return(Constant(value=False)),
             ],
             orelse=[],
         )
@@ -112,14 +112,11 @@ class DslTransformer(DslVisitor):
 
     # Visit a parse tree produced by DslParser#exprCondition.
     def visitExprCondition(self, ctx:DslParser.ExprConditionContext):
-        expr = self.visit(ctx.expr())
+        expr = self.visit(ctx.log_expr())
         return ast.If(
-            test=ast.UnaryOp(op=ast.Not(), operand=knowledge),
+            test=ast.UnaryOp(op=ast.Not(), operand=expr),
             body=[
-                ast.Expr(
-                    value=ast.Pass()                
-                ),
-                Return(Constant(value=False)),
+                ast.Pass(),
             ],
             orelse=[],
         )

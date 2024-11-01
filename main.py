@@ -65,27 +65,11 @@ class DslToPython(ast.NodeTransformer):
             return node
 
         precondition = dsl.parse(precondition_found[0].args[0].value, node.name)
-        print(ast.dump(precondition[0], indent=4))
-        print(ast.dump(precondition[1], indent=4))
-        print(ast.dump(precondition[2], indent=4))
+        print(precondition)
+        # print(ast.dump(precondition[2], indent=4))
         # early return
-        ast_condition = ast.If(
-            test=ast.UnaryOp(op=ast.Not(), operand=precondition[1]),
-            body=[
-                ast.Expr(
-                    value=ast.Call(
-                        func=Name(id="print", ctx=Load()),
-                        args=[
-                            Constant(value="Condição false"),
-                        ],
-                        keywords=[],
-                    )
-                ),
-                Return(Constant(value=False)),
-            ],
-            orelse=[],
-        )
-        node.body = [ast_condition, *node.body]
+        
+        node.body = [*precondition[2:][0], *node.body]
         return node
 
 
