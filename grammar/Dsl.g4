@@ -1,17 +1,17 @@
 grammar Dsl;
 import Lexer;
 
-plan: trigger (':' conditions)?;
+plan: modifier? trigger (':' conditions)?;
 
 trigger: knowledge;
 
 knowledge: belief # knowledgeBelief | goal # knowledgeGoal;
 
-belief: modifier? 'B' structure;
-goal: modifier? 'G' structure;
+belief: 'B' IDENTIFIER structure?;
+goal: 'G' IDENTIFIER structure?;
 modifier: '-' | '+';
 
-structure: IDENTIFIER ('(' structure_elements? ')')? source?;
+structure: '(' structure_elements? ')' source?;
 structure_elements: elements (',' elements)*;
 source: '[' IDENTIFIER ']';
 

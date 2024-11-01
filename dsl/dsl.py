@@ -5,12 +5,12 @@ from .DslToPythonTransformer import DslTransformer
 from io import StringIO
 
 
-def parse(input):
+def parse(input, name):
     lexer = DslLexer(InputStream(input))
     stream = CommonTokenStream(lexer)
     parser = DslParser(stream)
-    tree = parser.prog()
-    return DslTransformer().visit(tree)
+    tree = parser.plan()
+    return DslTransformer(name).visit(tree)
 
 
 def precondition(guard):

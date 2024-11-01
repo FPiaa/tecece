@@ -4,28 +4,125 @@ import ast
 
 
 class DslTransformer(DslVisitor):
-    # Visit a parse tree produced by DslParser#prog.
-    def visitProg(self, ctx:DslParser.ProgContext):
-        return self.visit(ctx.conditions())
 
-    # Visit a parse tree produced by DslParser#function_params.
-    def visitFunction_params(self, ctx:DslParser.Function_paramsContext):
-        return self.visitChildren(ctx)
+    def __init__(self, function_name):
+        self.function_name = function_name
 
 
-    # Visit a parse tree produced by DslParser#conditions.
-    def visitConditions(self, ctx:DslParser.ConditionsContext):
+    def _always_true_ctx(self):
+        return ast.FunctionDef(
+            name=self.function_name + '_ctx',
+            args=ast.arguments(
+                posonlyargs=[],
+                args=[],
+                kwonlyargs=[],
+                kw_defaults=[],
+                defaults=[]),
+            body=[
+                ast.Return(
+                    value=ast.List(elts=[], ctx=ast.Load()))],
+            decorator_list=[],
+            type_params=[])
+    
+    # Visit a parse tree produced by DslParser#plan.
+    def visitPlan(self, ctx:DslParser.PlanContext):
+        modifier_text = ''
+        if(ctx.modifier() is None):
+            modifier_text= 'gain'
+        else:
+            modifier_text = 'gain' if ctx.modifier().getText() == "+" else "lose"
+        modifier = ast.Name(id=modifier_text, ctx=ast.Load())
+        trigger = self.visit(ctx.trigger())
+        conditions = self._always_true_ctx() if ctx.conditions() is None else self.visit(ctx.conditions)
+        return (modifier, trigger, conditions)
+
+
+    # Visit a parse tree produced by DslParser#belief.
+    def visitBelief(self, ctx:DslParser.BeliefContext):
+        name = ctx.IDENTIFIER().getText()
+        structure = self.visit(ctx.structure()) if ctx.structure() is not None else []
+        return ast.Tuple(elts=[ast.Constant(value=name + '_bel'), *structure], ctx=ast.Load())
+
+
+    # Visit a parse tree produced by DslParser#goal.
+    def visitGoal(self, ctx:DslParser.GoalContext):
+        name = ctx.IDENTIFIER().getText()
+        structure = self.visit(ctx.structure()) if ctx.structure() is not None else []
+        return ast.Tuple(elts=[ast.Constant(value=name + '_goal'), *structure], ctx=ast.Load())
+
+
+    # Visit a parse tree produced by DslParser#structure.
+    def visitStructure(self, ctx:DslParser.StructureContext):
+        structure_elements = ctx.structure_elements()
+        if(structure_elements is None):
+            return ast.Tuple(elts=[], ctx=ast.Load())
+        elements =  self.visit(structure_elements)
+        elements = [ast.Tuple(elts=elements, ctx=ast.Load())]
+        if(ctx.source() is not None):
+            elements.append(self.visit(ctx.source()))
+        return elements
+
+
+    # Visit a parse tree produced by DslParser#structure_elements.
+    def visitStructure_elements(self, ctx:DslParser.Structure_elementsContext):
+        params = []
+        for pair in ctx.elements():
+            params.append(self.visit(pair))
+        return params
+
+
+    # Visit a parse tree produced by DslParser#source.
+    def visitSource(self, ctx:DslParser.SourceContext):
+        return ast.Constant(value=[ctx.IDENTIFIER().getText()])
+
+
+    # Visit a parse tree produced by DslParser#exprElement.
+    def visitExprElement(self, ctx:DslParser.ExprElementContext):
+        return self.visit(ctx.log_expr())
+
+
+    # Visit a parse tree produced by DslParser#anyElement.
+    def visitAnyElement(self, ctx:DslParser.AnyElementContext):
+        raise NotImplementedError('Any element not Implemented')
         return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by DslParser#condition_list.
     def visitCondition_list(self, ctx:DslParser.Condition_listContext):
-        return self.visitChildren(ctx)
+        exprs = []
+        for condition in ctx.condition_list():
+            exprs.append(self.visit(condition))
+        return exprs
 
 
-    # Visit a parse tree produced by DslParser#condition.
-    def visitCondition(self, ctx:DslParser.ConditionContext):
-        return self.visitChildren(ctx)
+    # Visit a parse tree produced by DslParser#knowledgeCondition.
+    def visitKnowledgeCondition(self, ctx:DslParser.KnowledgeConditionContext):
+        knowledge = self.visit(ctx.knowledge())
+        return ast.If(
+            test=ast.UnaryOp(op=ast.Not(), operand=knowledge),
+            body=[
+                ast.Expr(
+                    value=ast.Pass()                
+                ),
+                Return(Constant(value=False)),
+            ],
+            orelse=[],
+        )
+
+
+    # Visit a parse tree produced by DslParser#exprCondition.
+    def visitExprCondition(self, ctx:DslParser.ExprConditionContext):
+        expr = self.visit(ctx.expr())
+        return ast.If(
+            test=ast.UnaryOp(op=ast.Not(), operand=knowledge),
+            body=[
+                ast.Expr(
+                    value=ast.Pass()                
+                ),
+                Return(Constant(value=False)),
+            ],
+            orelse=[],
+        )
 
 
     # Visit a parse tree produced by DslParser#logical_or.
