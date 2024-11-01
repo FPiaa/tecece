@@ -52,8 +52,8 @@ primary:
 
 atom:
 	NUMBER				# atomNumber
-	| IDENTIFIER		# atomIdent
 	| BOOLEAN			# atomBool
+	| IDENTIFIER		# atomIdent
 	| 'None'			# atomNone
 	| tuple				# atomTuple
 	| array				# atomArray

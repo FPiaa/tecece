@@ -313,9 +313,10 @@ class DslTransformer(DslVisitor):
 
     # Visit a parse tree produced by DslParser#atomBool.
     def visitAtomBool(self, ctx:DslParser.AtomBoolContext):
+        print("visit atom bool")
         text_boolean = ctx.BOOLEAN().getText()
         boolean = True if text_boolean == 'True' else False
-        return Ast.Constant(value=boolean)
+        return ast.Constant(value=boolean)
 
 
     # Visit a parse tree produced by DslParser#atomNone.

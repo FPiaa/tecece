@@ -69,6 +69,7 @@ class DslToPython(ast.NodeTransformer):
         # early return
         
         node.body = [*precondition[2:][0], *node.body]
+        print(ast.dump(node.body[0]))
         return node
 
 
