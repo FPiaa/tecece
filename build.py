@@ -2,8 +2,6 @@ from dsl.dsl import precondition
 
 
 def foo(x, y):
-    if not 1 + 1:
-        pass
-    if not 2 * 2:
+    if not foo(1, 2, 3):
         pass
     print('foo')

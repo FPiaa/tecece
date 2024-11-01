@@ -222,13 +222,18 @@ class DslTransformer(DslVisitor):
     def visitPrimary_call(self, ctx:DslParser.Primary_callContext):
         func = self.visit(ctx.primary())
         args = []
-        print(func)
         if(ctx.function_params() is not None): 
             args = self.visit(ctx.function_params())
             print(args)
         
         return ast.Call(func=func, args=args, keywords=[])
 
+    # Visit a parse tree produced by DslParser#function_params.
+    def visitFunction_params(self, ctx:DslParser.Function_paramsContext):
+        args = []
+        for param in ctx.log_expr():
+            args.append(self.visit(param))
+        return args
 
     # Visit a parse tree produced by DslParser#primary_path.
     def visitPrimary_path(self, ctx:DslParser.Primary_pathContext):

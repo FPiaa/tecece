@@ -65,7 +65,6 @@ class DslToPython(ast.NodeTransformer):
             return node
 
         precondition = dsl.parse(precondition_found[0].args[0].value, node.name)
-        print(precondition)
         # print(ast.dump(precondition[2], indent=4))
         # early return
         
