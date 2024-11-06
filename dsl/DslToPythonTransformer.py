@@ -7,7 +7,8 @@ class DslTransformer(DslVisitor):
 
     def __init__(self, function_name):
         self.function_name = function_name
-        self.symbol_list = {}
+        self.symbol_list = []
+        self.in_for = False
 
 
     def _always_true_ctx(self):
@@ -104,13 +105,31 @@ class DslTransformer(DslVisitor):
     # Visit a parse tree produced by DslParser#condition_list.
     def visitCondition_list(self, ctx:DslParser.Condition_listContext):
         exprs = []
-        for condition in ctx.condition():
-            exprs.append(self.visit(condition))
+        last_for = None
+        for condition in enumerate(ctx.condition()):
+            cond = self.visit(condition)
+            if(last_for is not None):
+                last_for.body.append(cond)
+
+                if(isinstance(cond, ast.For)):
+                    last_for = cond
+            
+            else:
+                if(isinstance(cond, ast.For)):
+                    last_for = cond
+                exprs.append(cond)
+        
+        if(last_for is not None):
+            last_for.body.append(ast.Return(value=ast.List(elts=[ast.Name(id=x) for x in self.symbol_list])))        
+        else:
+            exprs.append(ast.Return(value=ast.Tuple(elts=[ast.Name(id=x) for x in self.symbol_list])))        
+
         return exprs
 
 
     # Visit a parse tree produced by DslParser#knowledgeCondition.
     def visitKnowledgeCondition(self, ctx:DslParser.KnowledgeConditionContext):
+        self.in_for = True
         knowledge = self.visit(ctx.knowledge())
         return ast.If(
             test=ast.UnaryOp(op=ast.Not(), operand=knowledge),
@@ -138,7 +157,7 @@ class DslTransformer(DslVisitor):
         return ast.If(
             test=ast.UnaryOp(op=ast.Not(), operand=expr),
             body=[
-                ast.Pass(),
+                ast.Continue if self.in_for else ast.Return(value=ast.Constant(value=None)),
             ],
             orelse=[],
         )
