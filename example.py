@@ -1,6 +1,6 @@
 from dsl.dsl import precondition
 
-@precondition("+B Teste(X, 1+1): 1+1, B teste, G oi(2, 3), better.call.saul(Bs, Bs)")
+@precondition("+B Teste(1, 1+1): B batata(X, Y), X = Y, B teste(X), self.inner_function(X * 3) = Y")
 def foo(x, y):
     print("foo")
 

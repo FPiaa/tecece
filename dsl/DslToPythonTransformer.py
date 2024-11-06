@@ -148,11 +148,16 @@ class DslTransformer(DslVisitor):
         self.in_for = True
         
         knowledge = self.visit(ctx.knowledge())
-        knowledge_args = [(index, x) for index, x in enumerate(knowledge.args[1:2])]
-        knowledge_args = [x for x in knowledge_args 
-                          if (isinstance(x[1], ast.Name) and x[1].id in self.symbol_list) or 
-                          isinstance(x[1], ast.Constant) and x[1].value in self.symbol_list
-                          ]
+
+        knowledge_args = knowledge.args[1:2]
+        if(len(knowledge_args) == 0 or isinstance(knowledge_args, ast.Tuple) and len(knowledge_args.elts) == 0):
+            knowledge_args = None
+        else:
+            knowledge_args = knowledge_args[0]
+            knowledge_args = [x for x in enumerate(knowledge_args.elts)
+                              if (isinstance(x[1], ast.Name) and x[1].id in self.symbol_list) or 
+                              isinstance(x[1], ast.Constant) and x[1].value in self.symbol_list
+                              ]
         
         ast_for = ast.For()
         ast_for.target = ast.Name(id='temp_var', ctx=ast.Store())
@@ -164,12 +169,12 @@ class DslTransformer(DslVisitor):
                 args=[knowledge]
         )
         ast_for.body = []
-        if(len(knowledge_args) != 0):
+        if(knowledge_args is not None):
             ast_for.body.append( 
                 ast.Assign(
                     targets=[
                         ast.Tuple(
-                            elts=[ast.Name(id=x[1]) for x in knowledge_args],
+                            elts=[ast.Name(id=x[1].id if isinstance(x[1], ast.Name) else x[1].value.replace('"','').replace("'", "")) for x in knowledge_args],
                             ctx=ast.Store()
                         )
                     ],
