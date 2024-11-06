@@ -69,6 +69,7 @@ class DslToPython(ast.NodeTransformer):
         # early return
         
         print(astor.to_source(precondition[2]))
+        # print(ast.dump(precondition[2], indent=4))
         return node
 
 

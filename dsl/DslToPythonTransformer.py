@@ -8,6 +8,7 @@ class DslTransformer(DslVisitor):
     def __init__(self, function_name):
         self.function_name = function_name
         self.symbol_list = []
+        self.trigger_symbols = []
         self.in_for = False
 
 
@@ -35,6 +36,7 @@ class DslTransformer(DslVisitor):
             modifier_text = 'gain' if ctx.modifier().getText() == "+" else "lose"
         modifier = ast.Name(id=modifier_text, ctx=ast.Load())
         trigger = self.visit(ctx.trigger())
+
         context_function = self._always_true_ctx() if ctx.condition_list() is None else self.visit(ctx.condition_list())
         return (modifier, trigger, context_function)
 
@@ -43,7 +45,7 @@ class DslTransformer(DslVisitor):
     def visitBelief(self, ctx:DslParser.BeliefContext):
         name = ctx.IDENTIFIER().getText()
         structure = self.visit(ctx.structure()) if ctx.structure() is not None else []
-        return ast.Call(func=ast.Name(id='Belief', ctx=ast.Load()), args=[name, *structure])
+        return ast.Call(func=ast.Name(id='Belief', ctx=ast.Load()), args=[ast.Constant(value=name), *structure])
         
 
 
@@ -51,7 +53,7 @@ class DslTransformer(DslVisitor):
     def visitGoal(self, ctx:DslParser.GoalContext):
         name = ctx.IDENTIFIER().getText()
         structure = self.visit(ctx.structure()) if ctx.structure() is not None else []
-        return ast.Call(func=ast.Name(id='Goal', ctx=ast.Load()), args=[name, *structure])
+        return ast.Call(func=ast.Name(id='Goal', ctx=ast.Load()), args=[ast.Constant(value=name), *structure])
 
 
     # Visit a parse tree produced by DslParser#structure.
