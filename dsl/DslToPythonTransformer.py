@@ -33,33 +33,38 @@ class DslTransformer(DslVisitor):
             modifier_text = 'gain' if ctx.modifier().getText() == "+" else "lose"
         modifier = ast.Name(id=modifier_text, ctx=ast.Load())
         trigger = self.visit(ctx.trigger())
-        conditions = self._always_true_ctx() if ctx.conditions() is None else self.visit(ctx.conditions())
-        return (modifier, trigger, conditions)
+        context_function = self._always_true_ctx() if ctx.conditions() is None else self.visit(ctx.conditions())
+        return (modifier, trigger, context_function)
 
 
     # Visit a parse tree produced by DslParser#belief.
     def visitBelief(self, ctx:DslParser.BeliefContext):
         name = ctx.IDENTIFIER().getText()
         structure = self.visit(ctx.structure()) if ctx.structure() is not None else []
-        return ast.Tuple(elts=[ast.Constant(value=name + '_bel'), *structure], ctx=ast.Load())
+        return ast.Call(func=ast.Name(id='Belief', ctx=ast.Load()), args=[name, *structure])
+        
 
 
     # Visit a parse tree produced by DslParser#goal.
     def visitGoal(self, ctx:DslParser.GoalContext):
         name = ctx.IDENTIFIER().getText()
         structure = self.visit(ctx.structure()) if ctx.structure() is not None else []
-        return ast.Tuple(elts=[ast.Constant(value=name + '_goal'), *structure], ctx=ast.Load())
+        return ast.Call(func=ast.Name(id='Goal', ctx=ast.Load()), args=[name, *structure])
 
 
     # Visit a parse tree produced by DslParser#structure.
     def visitStructure(self, ctx:DslParser.StructureContext):
         structure_elements = ctx.structure_elements()
+
         if(structure_elements is None):
-            return ast.Tuple(elts=[], ctx=ast.Load())
+            return [ast.Tuple(elts=[], ctx=ast.Load())]
+        
         elements =  self.visit(structure_elements)
         elements = [ast.Tuple(elts=elements, ctx=ast.Load())]
+
         if(ctx.source() is not None):
             elements.append(self.visit(ctx.source()))
+
         return elements
 
 
@@ -104,11 +109,19 @@ class DslTransformer(DslVisitor):
                 ast.Expr(
                     value=ast.Pass()                
                 ),
-                ast.Return(Constant(value=False)),
+                ast.Return(ast.Constant(value=False)),
             ],
             orelse=[],
         )
 
+    # Visit a parse tree produced by DslParser#knowledgeBelief.
+    def visitKnowledgeBelief(self, ctx:DslParser.KnowledgeBeliefContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by DslParser#knowledgeGoal.
+    def visitKnowledgeGoal(self, ctx:DslParser.KnowledgeGoalContext):
+        return self.visitChildren(ctx)
 
     # Visit a parse tree produced by DslParser#exprCondition.
     def visitExprCondition(self, ctx:DslParser.ExprConditionContext):
@@ -180,7 +193,7 @@ class DslTransformer(DslVisitor):
         if(unary_op == '-'):
             return ast.UnaryOp(op=ast.USub(), operand=operand)
 
-        raise Error(f"Operação inválida, visitUnary_expr, esperado + ou - encontrado '{unary_op}'")
+        raise Exception(f"Operação inválida, visitUnary_expr, esperado + ou - encontrado '{unary_op}'")
 
     # Visit a parse tree produced by DslParser#sum_expr.
     def visitSum_expr(self, ctx:DslParser.Sum_exprContext):
@@ -192,7 +205,7 @@ class DslTransformer(DslVisitor):
         if(op == '-'):
             return ast.BinOp(left=left, right=right, op=ast.Add())
 
-        raise Error(f"Operação inválida, visitSum_expr, esperado + ou - encontrado '{op}'")
+        raise Exception(f"Operação inválida, visitSum_expr, esperado + ou - encontrado '{op}'")
 
 
     # Visit a parse tree produced by DslParser#exp_expr.
@@ -214,7 +227,7 @@ class DslTransformer(DslVisitor):
         if op == "%":
             return ast.BinOp(left=left, right=right, op=ast.Mod())
 
-        raise Error(f"Operação inválida, visitMult_expr, esperado * ou / encontrado '{op}'")
+        raise Exception(f"Operação inválida, visitMult_expr, esperado * ou / encontrado '{op}'")
 
 
 

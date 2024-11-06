@@ -1,7 +1,7 @@
 grammar Dsl;
 import Lexer;
 
-plan: modifier? trigger (':' conditions)?;
+plan: modifier? trigger (':' condition_list)?;
 
 trigger: knowledge;
 
@@ -19,7 +19,6 @@ elements: log_expr # exprElement | '_' # anyElement;
 
 function_params: log_expr (',' log_expr)*;
 
-conditions: condition_list?;
 condition_list: condition (',' condition)*;
 
 condition:
