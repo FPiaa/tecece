@@ -16,7 +16,7 @@ class DslTransformer(DslVisitor):
             name=self.function_name + '_ctx',
             args=ast.arguments(
                 posonlyargs=[],
-                args=[],
+                args=[ast.arg(arg='self')],
                 kwonlyargs=[],
                 kw_defaults=[],
                 defaults=[]),
@@ -35,7 +35,7 @@ class DslTransformer(DslVisitor):
             modifier_text = 'gain' if ctx.modifier().getText() == "+" else "lose"
         modifier = ast.Name(id=modifier_text, ctx=ast.Load())
         trigger = self.visit(ctx.trigger())
-        context_function = self._always_true_ctx() if ctx.conditions() is None else self.visit(ctx.conditions())
+        context_function = self._always_true_ctx() if ctx.condition_list() is None else self.visit(ctx.condition_list())
         return (modifier, trigger, context_function)
 
 
@@ -59,7 +59,7 @@ class DslTransformer(DslVisitor):
         structure_elements = ctx.structure_elements()
 
         if(structure_elements is None):
-            return [ast.Tuple(elts=[], ctx=ast.Load())]
+            return [ast.List(elts=[], ctx=ast.Load())]
         
         elements =  self.visit(structure_elements)
         elements = [ast.Tuple(elts=elements, ctx=ast.Load())]
@@ -77,7 +77,7 @@ class DslTransformer(DslVisitor):
         for element in ctx.elements():
             el = self.visit(element)
             if(isinstance(el, ast.Name) and el.id not in self.symbol_list):
-                self.symbol_list.add(el.id)
+                self.symbol_list.append(el.id)
                 string = ast.Constant(value=el.id)
                 params.append(string)
             else: 
@@ -104,9 +104,9 @@ class DslTransformer(DslVisitor):
 
     # Visit a parse tree produced by DslParser#condition_list.
     def visitCondition_list(self, ctx:DslParser.Condition_listContext):
-        exprs = []
+        body = []
         last_for = None
-        for condition in enumerate(ctx.condition()):
+        for condition in ctx.condition():
             cond = self.visit(condition)
             if(last_for is not None):
                 last_for.body.append(cond)
@@ -117,14 +117,28 @@ class DslTransformer(DslVisitor):
             else:
                 if(isinstance(cond, ast.For)):
                     last_for = cond
-                exprs.append(cond)
+                body.append(cond)
         
         if(last_for is not None):
-            last_for.body.append(ast.Return(value=ast.List(elts=[ast.Name(id=x) for x in self.symbol_list])))        
+            last_for.body.append(ast.Return(value=ast.List(elts=[ast.Name(id=x) for x in self.symbol_list])))
+            body.append(ast.Return(value=ast.Constant(value=None)))  
         else:
-            exprs.append(ast.Return(value=ast.Tuple(elts=[ast.Name(id=x) for x in self.symbol_list])))        
+            body.append(ast.Return(value=ast.Tuple(elts=[ast.Name(id=x) for x in self.symbol_list])))        
 
-        return exprs
+        return ast.FunctionDef(
+            name=self.function_name + '_ctx',
+            args=ast.arguments(
+                posonlyargs=[],
+                args=[ast.arg(arg='self')],
+                kwonlyargs=[],
+                kw_defaults=[],
+                defaults=[]
+            ),
+            body=body,
+            decorator_list=[],
+            type_params=[]
+        )
+
 
 
     # Visit a parse tree produced by DslParser#knowledgeCondition.
@@ -304,7 +318,7 @@ class DslTransformer(DslVisitor):
         name = ctx.IDENTIFIER().getText()
         
         if(name not in self.symbol_list):
-            self.symbol_list.add(name)
+            self.symbol_list.append(name)
         
         value = self.visit(ctx.log_expr())
         return ast.NamedExpr(target=ast.Name(id=name, ctx=ast.Store()), value=value)
