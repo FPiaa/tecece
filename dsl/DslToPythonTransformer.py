@@ -189,7 +189,7 @@ class DslTransformer(DslVisitor):
         return ast.If(
             test=ast.UnaryOp(op=ast.Not(), operand=expr),
             body=[
-                ast.Continue if self.in_for else ast.Return(value=ast.Constant(value=None)),
+                ast.Continue() if self.in_for else ast.Return(value=ast.Constant(value=None)),
             ],
             orelse=[],
         )
