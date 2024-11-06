@@ -5,7 +5,7 @@ plan: modifier? trigger (':' condition_list)?;
 
 trigger: knowledge;
 
-knowledge: belief # knowledgeBelief | goal # knowledgeGoal;
+knowledge: belief | goal;
 
 belief: 'B' IDENTIFIER structure?;
 goal: 'G' IDENTIFIER structure?;

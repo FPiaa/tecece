@@ -130,27 +130,43 @@ class DslTransformer(DslVisitor):
     # Visit a parse tree produced by DslParser#knowledgeCondition.
     def visitKnowledgeCondition(self, ctx:DslParser.KnowledgeConditionContext):
         self.in_for = True
+        
         knowledge = self.visit(ctx.knowledge())
-        return ast.If(
-            test=ast.UnaryOp(op=ast.Not(), operand=knowledge),
-            body=[
-                ast.Expr(
-                    value=ast.Pass()                
-                ),
-                ast.Return(ast.Constant(value=False)),
-            ],
-            orelse=[],
+        knowledge_args = [(index, x) for index, x in enumerate(knowledge.args[1:2])]
+        knowledge_args = [x for x in knowledge_args 
+                          if (isinstance(x[1], ast.Name) and x[1].id in self.symbol_list) or 
+                          isinstance(x[1], ast.Constant) and x[1].value in self.symbol_list
+                          ]
+        
+        ast_for = ast.For()
+        ast_for.target = ast.Name(id='temp_var', ctx=ast.Store())
+        ast_for.iter = ast.Call(
+            func=ast.Attribute(
+                value=ast.Name(id='self', ctx=ast.Load()),
+                attr='get',
+                ctx=ast.Load()),
+                args=[knowledge]
         )
+        ast_for.body = []
+        if(len(knowledge_args) != 0):
+            ast_for.body.append( 
+                ast.Assign(
+                    targets=[
+                        ast.Tuple(
+                            elts=[ast.Name(id=x[1]) for x in knowledge_args],
+                            ctx=ast.Store()
+                        )
+                    ],
+                    value=ast.Tuple(elts=[ast.Subscript(
+                        value=ast.Name(id='temp_var', ctx=ast.Load()),
+                        slice=ast.Constant(value=x[0]), 
+                        ctx=ast.Load()) for x in knowledge_args]), ctx=ast.Load())
+            )
 
-    # Visit a parse tree produced by DslParser#knowledgeBelief.
-    def visitKnowledgeBelief(self, ctx:DslParser.KnowledgeBeliefContext):
-        return self.visitChildren(ctx)
+        return ast_for
 
 
-    # Visit a parse tree produced by DslParser#knowledgeGoal.
-    def visitKnowledgeGoal(self, ctx:DslParser.KnowledgeGoalContext):
-        return self.visitChildren(ctx)
-
+        
     # Visit a parse tree produced by DslParser#exprCondition.
     def visitExprCondition(self, ctx:DslParser.ExprConditionContext):
         expr = self.visit(ctx.log_expr())
