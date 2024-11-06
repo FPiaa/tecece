@@ -7,6 +7,7 @@ class DslTransformer(DslVisitor):
 
     def __init__(self, function_name):
         self.function_name = function_name
+        self.symbol_list = {}
 
 
     def _always_true_ctx(self):
@@ -71,8 +72,16 @@ class DslTransformer(DslVisitor):
     # Visit a parse tree produced by DslParser#structure_elements.
     def visitStructure_elements(self, ctx:DslParser.Structure_elementsContext):
         params = []
-        for pair in ctx.elements():
-            params.append(self.visit(pair))
+
+        for element in ctx.elements():
+            el = self.visit(element)
+            if(isinstance(el, ast.Name) and el.id not in self.symbol_list):
+                self.symbol_list.add(el.id)
+                string = ast.Constant(value=el.id)
+                params.append(string)
+            else: 
+                params.append(el)
+
         return params
 
 
@@ -258,6 +267,10 @@ class DslTransformer(DslVisitor):
     # Visit a parse tree produced by DslParser#primary_walrus.
     def visitPrimary_walrus(self, ctx:DslParser.Primary_walrusContext):
         name = ctx.IDENTIFIER().getText()
+        
+        if(name not in self.symbol_list):
+            self.symbol_list.add(name)
+        
         value = self.visit(ctx.log_expr())
         return ast.NamedExpr(target=ast.Name(id=name, ctx=ast.Store()), value=value)
 
@@ -321,7 +334,9 @@ class DslTransformer(DslVisitor):
 
     # Visit a parse tree produced by DslParser#atomIdent.
     def visitAtomIdent(self, ctx:DslParser.AtomIdentContext):
-        return ast.Name(id=ctx.IDENTIFIER().getText(), ctx=ast.Load())
+        id = ctx.IDENTIFIER().getText()
+
+        return ast.Name(id=id, ctx=ast.Load())
 
 
     # Visit a parse tree produced by DslParser#atomBool.
