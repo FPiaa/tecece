@@ -10,7 +10,8 @@ def parse(input, name):
     stream = CommonTokenStream(lexer)
     parser = DslParser(stream)
     tree = parser.plan()
-    return DslTransformer(name).visit(tree)
+    transformer = DslTransformer(name)
+    return transformer.visit(tree), transformer.symbol_list
 
 
 def parse_structure(input):
