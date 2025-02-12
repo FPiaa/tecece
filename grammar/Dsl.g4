@@ -22,7 +22,7 @@ function_params: log_expr (',' log_expr)*;
 condition_list: condition (',' condition)*;
 
 condition:
-	knowledge	# knowledgeCondition
+	modifier? knowledge	# knowledgeCondition
 	| log_expr	# exprCondition;
 
 log_expr:
