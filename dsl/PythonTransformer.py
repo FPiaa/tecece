@@ -28,9 +28,7 @@ class PythonTransformer(ast.NodeTransformer):
             return node
 
         precondition = dsl.parse(precondition_found[0].args[0].value, node.name)
-        # print(ast.dump(precondition[2], indent=4))
         # early return
-        print(ast.dump(node))
         
         for x in node.decorator_list:
             if isinstance(x, ast.Call) and (isinstance(x.func, ast.Name) and x.func.id == 'pl' or isinstance(x.func, ast.Attribute) and x.func.attr == 'pl'):
@@ -41,7 +39,6 @@ class PythonTransformer(ast.NodeTransformer):
         return self.generic_visit(node)
     
     def visit_UnaryOp(self, node: ast.UnaryOp):
-        print("unary op")
         check_nested = isinstance(node.operand, ast.UnaryOp) and node.op == node.operand.op
         check_op = lambda x: isinstance(x, ast.Call) and (x.func.id == 'Belief' or x.func.id == 'Goal')
         check_args = lambda x: isinstance(x.args[0], ast.Constant)
@@ -70,6 +67,5 @@ class PythonTransformer(ast.NodeTransformer):
             new_call.func.attr = "add" if isinstance(node.op, ast.UAdd) else "rm"
             return new_call
         else:
-            print(node.op == ast.UAdd())
             return node
 

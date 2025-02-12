@@ -338,7 +338,6 @@ class DslTransformer(DslVisitor):
         args = []
         if(ctx.function_params() is not None): 
             args = self.visit(ctx.function_params())
-            print(args)
         
         return ast.Call(func=func, args=args, keywords=[])
 
@@ -433,7 +432,6 @@ class DslTransformer(DslVisitor):
 
     # Visit a parse tree produced by DslParser#atomBool.
     def visitAtomBool(self, ctx:DslParser.AtomBoolContext):
-        print("visit atom bool")
         text_boolean = ctx.BOOLEAN().getText()
         boolean = True if text_boolean == 'True' else False
         return ast.Constant(value=boolean)
