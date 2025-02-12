@@ -60,26 +60,51 @@ def transformar_arquivos_recursivamente(origem, destino, verbose=False):
 def build(args):
     # Função para o subcomando 'build'
     print("Executando build...")
-    if args.input_dir:
-        print(f"Diretório de entrada: {args.input_dir}")
-    if args.output_dir:
-        print(f"Diretório de saída: {args.output_dir}")
+    configs = {}
+    if os.path.exists('./maspy-dsl.json'):
+        with open('./maspy-dsl.json') as f:
+            configs = json.load(f)
+
+
+    if args.input_dir is not None or configs.get('input-dir', None) is not None:
+        print(f"Diretório de entrada: {args.input_dir or configs.get('input-dir')}")
+    else:
+        print("Por favor inicie um projeto MASPY-DSL ou informe um diretório de origem")
+        return sys.exit(-1)
+    
+
+    if args.output_dir is not None or configs.get('output-dir', None) is not None:
+        print(f"Diretório de saída: {args.output_dir or configs.get('output-dir')}")
+    else:
+        print("Por favor inicie um projeto MASPY-DSL ou informe um diretório de destino")
+        return sys.exit(-1)
+
+
     if args.verbose:
         print(f"Modo verboso ativado.")
     
     try:
-        transformar_arquivos_recursivamente(args.input_dir, args.output_dir, args.verbose)
+        transformar_arquivos_recursivamente(args.input_dir or configs.get('input-dir'), args.output_dir or configs.get('output-dir'), args.verbose)
         print("Build concluído.")
     except Exception as e:
         print(f"Ocorreu um erro durante a execução: {e}")
 
+
 def exec_cmd(args):
-    # Função para o subcomando 'exec'
-    print("Executando a maspy...")
-    if args.entrypoint:
-        print(f"Ponto de entrada: {args.entrypoint}")
     
-    subprocess.call(["python3",  args.entrypoint])
+    configs = {}
+    if os.path.exists('./maspy-dsl.json'):
+        with open('./maspy-dsl.json') as f:
+            configs = json.load(f.read())
+
+    print("Executando a maspy...")
+    if args.entrypoint is not None or configs.get('entrypoint', None) is not None:
+        print(f"Ponto de entrada: {args.entrypoint}")
+        subprocess.call(["python3",  args.entrypoint or configs.get('entrypoint')])
+    else:
+        print("Por favor inicie um projeto MASPY-DSL ou informe o ponto de entrada")
+        return sys.exit(-1)
+        
 
 def init_project(args):
     src_path = args.input_dir or "./src"
