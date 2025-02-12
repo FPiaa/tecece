@@ -152,7 +152,10 @@ class DslTransformer(DslVisitor):
     # Visit a parse tree produced by DslParser#knowledgeCondition.
     def visitKnowledgeCondition(self, ctx:DslParser.KnowledgeConditionContext):
         self.in_for = True
-        
+        modifier = "+"
+        if ctx.modifier():
+            modifier = ctx.modifier().getText()
+
         knowledge = self.visit(ctx.knowledge())
         knowledge.keywords = [ast.keyword(arg='all', value=ast.Constant(value=True))]
         knowledge_tuple = self.list_get(knowledge.args, 1)
@@ -166,39 +169,58 @@ class DslTransformer(DslVisitor):
                     knowledge_args.append(x)
             knowledge.args[1].elts = knowledge_args
 
-
-        ast_for = ast.For()
-        ast_for.target = ast.Name(id='temp_var', ctx=ast.Store())
-        ast_for.iter = ast.Call(
-            func=ast.Attribute(
-                value=ast.Name(id='self', ctx=ast.Load()),
-                attr='get',
-                ctx=ast.Load()),
+        call_knowledge = ast.Call(
+                func=ast.Attribute(
+                    value=ast.Name(id='self', ctx=ast.Load()),
+                    attr='get',
+                    ctx=ast.Load()
+                ),
                 args=[knowledge],
                 keywords=[]
-        )
-        ast_for.body = []
-        ast_for.orelse = []
-        if(knowledge_tuple is not None and len(knowledge_tuple.elts) > 0):
-            ast_for.body.append( 
-                ast.Assign(
-                    targets=[
-                        ast.Tuple(
-                            elts=[x if isinstance(x, ast.Name) and x.id != 'any' else ast.Name(id="_", ctx=ast.Load())for x in knowledge_tuple.elts],
-                            ctx=ast.Store()
-                        )
-                    ],
-                    value=ast.Tuple(elts=[ast.Subscript(
-                        value=ast.Name(id='temp_var', ctx=ast.Load()),
-                        slice=ast.Constant(value=x[0]), 
-                        ctx=ast.Load()) for x in enumerate(knowledge_tuple.elts)]), ctx=ast.Load())
             )
+        if modifier == '+':
+            ast_for = ast.For()
+            ast_for.target = ast.Name(id='temp_var', ctx=ast.Store())
+            ast_for.iter = call_knowledge
+            ast_for.body = []
+            ast_for.orelse = []
+            if(knowledge_tuple is not None and len(knowledge_tuple.elts) > 0):
+                ast_for.body.append( 
+                    ast.Assign(
+                        targets=[
+                            ast.Tuple(
+                                elts=[x if isinstance(x, ast.Name) and x.id != 'any' else ast.Name(id="_", ctx=ast.Load())for x in knowledge_tuple.elts],
+                                ctx=ast.Store()
+                            )
+                        ],
+                        value=ast.Tuple(elts=[ast.Subscript(
+                            value=ast.Name(id='temp_var', ctx=ast.Load()),
+                            slice=ast.Constant(value=x[0]), 
+                            ctx=ast.Load()) for x in enumerate(knowledge_tuple.elts)]), ctx=ast.Load())
+                )
 
-        for x in knowledge_tuple.elts:
-            if isinstance(x, ast.Name) and x.id != 'any' and x.id not in self.symbol_list:
-                self.symbol_list.append(x.id)
+            for x in knowledge_tuple.elts:
+                if isinstance(x, ast.Name) and x.id != 'any' and x.id not in self.symbol_list:
+                    self.symbol_list.append(x.id)
 
-        return ast_for
+            return ast_for
+        elif modifier == '-':
+            return ast.If(
+                test=ast.Compare(
+                    left=ast.Call(
+                        func=ast.Name(id='len', ctx=ast.Load()),
+                        args=[call_knowledge],
+                        keywords=[]
+                    ),
+                    ops=[ast.Gt()],
+                    comparators=[ast.Constant(value=0)]
+                ),
+                body=[
+                    ast.Continue() if self.in_for else ast.Return(value=ast.Constant(value=None)),
+                ],
+                orelse=[],
+            )
+        return self.visit(ctx)
 
 
         
