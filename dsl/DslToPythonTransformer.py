@@ -49,7 +49,7 @@ class DslTransformer(DslVisitor):
         return ast.Call(
             func=ast.Name(id='Belief', ctx=ast.Load()), 
             args=[ast.Constant(value=name), *structure],
-            keywords=[ast.keyword(arg='all', value=ast.Constant(value=True))]
+            keywords=[]
             )
         
 
@@ -154,6 +154,7 @@ class DslTransformer(DslVisitor):
         self.in_for = True
         
         knowledge = self.visit(ctx.knowledge())
+        knowledge.keywords = [ast.keyword(arg='all', value=ast.Constant(value=True))]
         knowledge_tuple = self.list_get(knowledge.args, 1)
         if knowledge_tuple is not None and isinstance(knowledge_tuple, ast.Tuple):
             knowledge_tuple = copy.deepcopy(knowledge_tuple)
