@@ -1,5 +1,6 @@
 from .grammar.DslParser import DslParser
 from .grammar.DslVisitor import DslVisitor
+import copy
 import ast
 
 
@@ -85,12 +86,7 @@ class DslTransformer(DslVisitor):
 
         for element in ctx.elements():
             el = self.visit(element)
-            if(isinstance(el, ast.Name) and el.id not in self.symbol_list):
-                self.symbol_list.append(el.id)
-                string = ast.Constant(value=el.id)
-                params.append(string)
-            else: 
-                params.append(el)
+            params.append(el)
 
         return params
 
@@ -148,23 +144,28 @@ class DslTransformer(DslVisitor):
         )
 
 
+    def list_get(self, l, pos):
+        if pos < len(l):
+            return l[pos]
+        return None
 
     # Visit a parse tree produced by DslParser#knowledgeCondition.
     def visitKnowledgeCondition(self, ctx:DslParser.KnowledgeConditionContext):
         self.in_for = True
         
         knowledge = self.visit(ctx.knowledge())
+        knowledge_tuple = self.list_get(knowledge.args, 1)
+        if knowledge_tuple is not None and isinstance(knowledge_tuple, ast.Tuple):
+            knowledge_tuple = copy.deepcopy(knowledge_tuple)
+            knowledge_args = []
+            for x in knowledge_tuple.elts:
+                if isinstance(x, ast.Name) and x.id not in self.symbol_list:
+                    knowledge_args.append(ast.Name(id="any", ctx=ast.Load()))
+                else:
+                    knowledge_args.append(x)
+            knowledge.args[1].elts = knowledge_args
 
-        knowledge_args = knowledge.args[1:2]
-        if(len(knowledge_args) == 0 or isinstance(knowledge_args, ast.Tuple) and len(knowledge_args.elts) == 0):
-            knowledge_args = None
-        else:
-            knowledge_args = knowledge_args[0]
-            knowledge_args = [x for x in enumerate(knowledge_args.elts)
-                              if (isinstance(x[1], ast.Name) and x[1].id in self.symbol_list) or 
-                              isinstance(x[1], ast.Constant) and x[1].value in self.symbol_list
-                              ]
-        
+
         ast_for = ast.For()
         ast_for.target = ast.Name(id='temp_var', ctx=ast.Store())
         ast_for.iter = ast.Call(
@@ -177,20 +178,24 @@ class DslTransformer(DslVisitor):
         )
         ast_for.body = []
         ast_for.orelse = []
-        if(knowledge_args is not None):
+        if(knowledge_tuple is not None and len(knowledge_tuple.elts) > 0):
             ast_for.body.append( 
                 ast.Assign(
                     targets=[
                         ast.Tuple(
-                            elts=[ast.Name(id=x[1].id if isinstance(x[1], ast.Name) else x[1].value.replace('"','').replace("'", "")) for x in knowledge_args],
+                            elts=[x if isinstance(x, ast.Name) and x.id != 'any' else ast.Name(id="_", ctx=ast.Load())for x in knowledge_tuple.elts],
                             ctx=ast.Store()
                         )
                     ],
                     value=ast.Tuple(elts=[ast.Subscript(
                         value=ast.Name(id='temp_var', ctx=ast.Load()),
                         slice=ast.Constant(value=x[0]), 
-                        ctx=ast.Load()) for x in knowledge_args]), ctx=ast.Load())
+                        ctx=ast.Load()) for x in enumerate(knowledge_tuple.elts)]), ctx=ast.Load())
             )
+
+        for x in knowledge_tuple.elts:
+            if isinstance(x, ast.Name) and x.id != 'any' and x.id not in self.symbol_list:
+                self.symbol_list.append(x.id)
 
         return ast_for
 
