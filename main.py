@@ -133,6 +133,12 @@ def init_project(args):
             print(json.dumps(base_args))
             w.write(json.dumps(base_args, indent=4))
 
+    if not os.path.exists('./.gitignore'):
+        with open("./.gitignore", 'w') as f:
+            f.write("build\n")
+            f.write("lib\n")
+            f.write("lib64\n")
+            f.write("bin\n")
 
 
 def main():
