@@ -7,6 +7,7 @@ import sys
 import shutil
 import os
 import pathlib
+import subprocess
 
 def convert(filename, file_dest):
     with open(filename, "r") as f:
@@ -77,11 +78,7 @@ def exec_cmd(args):
     if args.entrypoint:
         print(f"Ponto de entrada: {args.entrypoint}")
     
-    print("Starting MASPY program")
-    print("# Admin #> Starting Agents")
-    print("Agent: ('VA', 1)> Realizar manobra")
-    print("Agent: ('VA', 1)> Shutting down...")
-    print("Ending MASPY program")
+    subprocess.call(["python3",  args.entrypoint])
 
 def main():
     parser = argparse.ArgumentParser(description="MASPY DSL")
