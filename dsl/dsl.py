@@ -13,12 +13,9 @@ def parse(input, name):
     return DslTransformer(name).visit(tree)
 
 
-def precondition(guard):
-    def inner(function):
-        print()
-
-    return inner
-
-
-def talk(input):
-    print("do something")
+def parse_structure(input):
+    lexer = DslLexer(InputStream(input))
+    stream = CommonTokenStream(lexer)
+    parser = DslParser(stream)
+    tree = parser.knowledge()
+    return DslTransformer("knowledge").visit(tree)
