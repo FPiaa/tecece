@@ -45,7 +45,11 @@ class DslTransformer(DslVisitor):
     def visitBelief(self, ctx:DslParser.BeliefContext):
         name = ctx.IDENTIFIER().getText()
         structure = self.visit(ctx.structure()) if ctx.structure() is not None else []
-        return ast.Call(func=ast.Name(id='Belief', ctx=ast.Load()), args=[ast.Constant(value=name), *structure])
+        return ast.Call(
+            func=ast.Name(id='Belief', ctx=ast.Load()), 
+            args=[ast.Constant(value=name), *structure],
+            keywords=[]
+            )
         
 
 
@@ -53,7 +57,10 @@ class DslTransformer(DslVisitor):
     def visitGoal(self, ctx:DslParser.GoalContext):
         name = ctx.IDENTIFIER().getText()
         structure = self.visit(ctx.structure()) if ctx.structure() is not None else []
-        return ast.Call(func=ast.Name(id='Goal', ctx=ast.Load()), args=[ast.Constant(value=name), *structure])
+        return ast.Call(
+            func=ast.Name(id='Goal', ctx=ast.Load()), 
+            args=[ast.Constant(value=name), *structure],
+            keywords=[])
 
 
     # Visit a parse tree produced by DslParser#structure.
@@ -100,8 +107,7 @@ class DslTransformer(DslVisitor):
 
     # Visit a parse tree produced by DslParser#anyElement.
     def visitAnyElement(self, ctx:DslParser.AnyElementContext):
-        raise NotImplementedError('Any element not Implemented')
-        return self.visitChildren(ctx)
+        return ast.Name(id='any', ctx=ast.Load())
 
 
     # Visit a parse tree produced by DslParser#condition_list.
@@ -166,9 +172,11 @@ class DslTransformer(DslVisitor):
                 value=ast.Name(id='self', ctx=ast.Load()),
                 attr='get',
                 ctx=ast.Load()),
-                args=[knowledge]
+                args=[knowledge],
+                keywords=[]
         )
         ast_for.body = []
+        ast_for.orelse = []
         if(knowledge_args is not None):
             ast_for.body.append( 
                 ast.Assign(
