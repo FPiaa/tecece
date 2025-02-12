@@ -48,7 +48,7 @@ class DslTransformer(DslVisitor):
         return ast.Call(
             func=ast.Name(id='Belief', ctx=ast.Load()), 
             args=[ast.Constant(value=name), *structure],
-            keywords=[]
+            keywords=[ast.keyword(arg='all', value=ast.Constant(value=True))]
             )
         
 
