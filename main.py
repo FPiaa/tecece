@@ -95,7 +95,7 @@ def exec_cmd(args):
     configs = {}
     if os.path.exists('./maspy-dsl.json'):
         with open('./maspy-dsl.json') as f:
-            configs = json.load(f.read())
+            configs = json.load(f)
 
     print("Executando a maspy...")
     if args.entrypoint is not None or configs.get('entrypoint', None) is not None:
