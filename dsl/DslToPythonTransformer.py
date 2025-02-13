@@ -24,7 +24,7 @@ class DslTransformer(DslVisitor):
                 defaults=[]),
             body=[
                 ast.Return(
-                    value=ast.List(elts=[], ctx=ast.Load()))],
+                    value=ast.Tuple(elts=[], ctx=ast.Load()))],
             decorator_list=[],
             type_params=[])
     
@@ -124,7 +124,7 @@ class DslTransformer(DslVisitor):
                 body.append(cond)
         
         if(last_for is not None):
-            last_for.body.append(ast.Return(value=ast.List(elts=[ast.Name(id=x) for x in self.symbol_list])))
+            last_for.body.append(ast.Return(value=ast.Tuple(elts=[ast.Name(id=x) for x in self.symbol_list])))
             body.append(ast.Return(value=ast.Constant(value=None)))  
         else:
             body.append(ast.Return(value=ast.Tuple(elts=[ast.Name(id=x) for x in self.symbol_list])))        
