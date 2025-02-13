@@ -103,7 +103,7 @@ class DslTransformer(DslVisitor):
 
     # Visit a parse tree produced by DslParser#anyElement.
     def visitAnyElement(self, ctx:DslParser.AnyElementContext):
-        return ast.Name(id='any', ctx=ast.Load())
+        return ast.Name(id='Any', ctx=ast.Load())
 
 
     # Visit a parse tree produced by DslParser#condition_list.
@@ -164,7 +164,7 @@ class DslTransformer(DslVisitor):
             knowledge_args = []
             for x in knowledge_tuple.elts:
                 if isinstance(x, ast.Name) and x.id not in self.symbol_list:
-                    knowledge_args.append(ast.Name(id="any", ctx=ast.Load()))
+                    knowledge_args.append(ast.Name(id="Any", ctx=ast.Load()))
                 else:
                     knowledge_args.append(x)
             knowledge.args[1].elts = knowledge_args
@@ -189,7 +189,7 @@ class DslTransformer(DslVisitor):
                     ast.Assign(
                         targets=[
                             ast.Tuple(
-                                elts=[x if isinstance(x, ast.Name) and x.id != 'any' else ast.Name(id="_", ctx=ast.Load())for x in knowledge_tuple.elts],
+                                elts=[x if isinstance(x, ast.Name) and x.id != 'Any' else ast.Name(id="_", ctx=ast.Load())for x in knowledge_tuple.elts],
                                 ctx=ast.Store()
                             )
                         ],
@@ -200,7 +200,7 @@ class DslTransformer(DslVisitor):
                 )
 
             for x in knowledge_tuple.elts:
-                if isinstance(x, ast.Name) and x.id != 'any' and x.id not in self.symbol_list:
+                if isinstance(x, ast.Name) and x.id != 'Any' and x.id not in self.symbol_list:
                     self.symbol_list.append(x.id)
 
             return ast_for
