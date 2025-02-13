@@ -34,7 +34,7 @@ class PythonTransformer(ast.NodeTransformer):
             if isinstance(x, ast.Call) and (isinstance(x.func, ast.Name) and x.func.id == 'pl' or isinstance(x.func, ast.Attribute) and x.func.attr == 'pl'):
                 call = ast.Name(id=precondition[0][2].name, ctx=ast.Load())
                 x.args = [precondition[0][0], precondition[0][1], call]
-                node.args = ast.arguments(args=[ast.arg(arg='self'), *[ast.arg(arg=x) for x in precondition[1]]])
+                node.args = ast.arguments(args=[ast.arg(arg='self'), ast.arg(arg='src'), *[ast.arg(arg=x) for x in precondition[1]]])
                 self.ctx_functions.append(precondition[0][2])
         return self.generic_visit(node)
     
